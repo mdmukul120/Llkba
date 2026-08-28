@@ -16,12 +16,16 @@ TARGET_BASE_URL = "https://dzritv.com"
 REQUEST_TIMEOUT = 15
 MAX_RETRIES = 3
 
-# প্রিমিয়াম ব্রাউজার রিকোয়েস্ট হেডার
+# ৪০৩ Forbidden এবং Anti-Hotlinking বাইপাস করতে প্রিমিয়াম হেডার
 HTTP_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9,bn;q=0.8",
-    "Referer": TARGET_BASE_URL,
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://dzritv.com/",
+    "Origin": "https://dzritv.com",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "cross-site",
 }
 
 # --- ব্যানার ডিজাইন কনফিগারেশন ---
