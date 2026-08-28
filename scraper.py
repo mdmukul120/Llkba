@@ -6,7 +6,7 @@ import config
 
 class DzriTVScraper:
     """
-    DzriTV ওয়েবসাইট থেকে ক্যাটাগরি এবং ডাইরেক্ট Iframe URL (অ্যাড ও ট্র্যাকার মুক্ত) এক্সট্র্যাক্ট করার স্ক্র্যাপার
+    DzriTV ওয়েবসাইট থেকে স্লাগ URL নিয়ে কাস্টম CSS এর মাধ্যমে শুধুমাত্র ভিডিও প্লেয়ার ভিউ রেন্ডার করার স্ক্র্যাপার
     """
     
     def __init__(self):
@@ -47,42 +47,25 @@ class DzriTVScraper:
                 
         return categories
 
-    def extract_direct_iframe(self, match_slug_url: str) -> Dict[str, str]:
-        """ 403 Forbidden এড়াতে এবং Google Tag Manager/অ্যাড ট্র্যাকার ফিল্টার করে আসল ভিডিও Iframe এক্সট্র্যাক্ট করে """
-        soup = self.fetch_page_content(match_slug_url)
-        result = {
-            "iframe_url": "",
-            "embed_code": ""
-        }
-
-        if not soup:
-            return result
-
-        iframes = soup.find_all('iframe')
+    def generate_cropped_embed(self, match_slug_url: str) -> Dict[str, str]:
+        """
+        স্লাগ URL টি আইফ্রেমের ভেতর রেখে CSS Margin/Crop এর মাধ্যমে 
+        সাইটের হেডার-ফুটার লুকিয়ে শুধু ভিডিও প্লেয়ারটুকু ডিসপ্লে করাবে।
+        """
+        # CSS ট্রিকস দিয়ে সাইটের ওপরের অংশ (Header/Nav) কেটে বাদ দিয়ে প্লেয়ার ফোকাস করা
+        embed_code = (
+            f'<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; background: #000;">'
+            f'<iframe src="{match_slug_url}" '
+            f'style="position: absolute; top: -140px; left: 0; width: 100%; height: calc(100% + 200px); border: none; scrolling: no;" '
+            f'allowfullscreen="true" scrolling="no" allow="autoplay; encrypted-media">'
+            f'</iframe>'
+            f'</div>'
+        )
         
-        # বিজ্ঞাপনী ডোমেইন ও ট্র্যাকার ফিল্টার লিস্ট
-        ignored_domains = [
-            'facebook.com', 'google.com', 'googletagmanager.com', 
-            'analytics', 'disqus', 'ads', 'doubleclick.net', 'gtm'
-        ]
-
-        for iframe in iframes:
-            src = iframe.get('src') or iframe.get('data-src') or iframe.get('lazy-src') or ''
-            
-            # অকার্যকর বা ট্র্যাকিং আইফ্রেম ফিল্টার করা
-            if src and not any(ignored in src.lower() for ignored in ignored_domains):
-                if src.startswith('//'):
-                    final_iframe_url = f"https:{src}"
-                elif src.startswith('http'):
-                    final_iframe_url = src
-                else:
-                    final_iframe_url = f"{config.TARGET_BASE_URL.rstrip('/')}/{src.lstrip('/')}"
-
-                result["iframe_url"] = final_iframe_url
-                result["embed_code"] = f'<iframe src="{final_iframe_url}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" allow="encrypted-media; autoplay"></iframe>'
-                break
-
-        return result
+        return {
+            "iframe_url": match_slug_url,
+            "embed_code": embed_code
+        }
 
     def scrape_matches_by_category(self, category: Dict[str, str]) -> List[Dict[str, Any]]:
         soup = self.fetch_page_content(category['url'])
@@ -110,14 +93,14 @@ class DzriTVScraper:
             title = re.sub(r'\s+', ' ', title)
 
             if len(title) > 3:
-                iframe_data = self.extract_direct_iframe(full_slug_url)
+                player_data = self.generate_cropped_embed(full_slug_url)
 
                 match_list.append({
                     "title": title,
                     "category": category['name'],
                     "slug_url": full_slug_url,
-                    "iframe_url": iframe_data["iframe_url"],
-                    "embed_code": iframe_data["embed_code"]
+                    "iframe_url": player_data["iframe_url"],
+                    "embed_code": player_data["embed_code"]
                 })
 
         return match_list
