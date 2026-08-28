@@ -6,7 +6,7 @@ import config
 
 class DzriTVScraper:
     """
-    DzriTV ওয়েবসাইট থেকে ক্যাটাগরি এবং ডাইরেক্ট Iframe URL এক্সট্র্যাক্ট করার স্ক্র্যাপার
+    DzriTV ওয়েবসাইট থেকে ক্যাটাগরি এবং ডাইরেক্ট Iframe URL (অ্যাড ও ট্র্যাকার মুক্ত) এক্সট্র্যাক্ট করার স্ক্র্যাপার
     """
     
     def __init__(self):
@@ -48,7 +48,7 @@ class DzriTVScraper:
         return categories
 
     def extract_direct_iframe(self, match_slug_url: str) -> Dict[str, str]:
-        """ ডাইরেক্ট Iframe URL ও HTML কোড এক্সট্র্যাক্ট করে """
+        """ 403 Forbidden এড়াতে এবং Google Tag Manager/অ্যাড ট্র্যাকার ফিল্টার করে আসল ভিডিও Iframe এক্সট্র্যাক্ট করে """
         soup = self.fetch_page_content(match_slug_url)
         result = {
             "iframe_url": "",
@@ -59,10 +59,18 @@ class DzriTVScraper:
             return result
 
         iframes = soup.find_all('iframe')
+        
+        # বিজ্ঞাপনী ডোমেইন ও ট্র্যাকার ফিল্টার লিস্ট
+        ignored_domains = [
+            'facebook.com', 'google.com', 'googletagmanager.com', 
+            'analytics', 'disqus', 'ads', 'doubleclick.net', 'gtm'
+        ]
+
         for iframe in iframes:
             src = iframe.get('src') or iframe.get('data-src') or iframe.get('lazy-src') or ''
             
-            if src and not any(ignored in src for ignored in ['facebook.com', 'google.com', 'analytics', 'disqus', 'ads']):
+            # অকার্যকর বা ট্র্যাকিং আইফ্রেম ফিল্টার করা
+            if src and not any(ignored in src.lower() for ignored in ignored_domains):
                 if src.startswith('//'):
                     final_iframe_url = f"https:{src}"
                 elif src.startswith('http'):
