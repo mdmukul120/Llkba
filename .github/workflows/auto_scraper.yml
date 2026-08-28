@@ -1,0 +1,45 @@
+name: DzriTV Auto Scraper & Banner Generator Pipeline
+
+on:
+  schedule:
+    # প্রতি ১৫ মিনিট পরপর অটোমেটিক রান হবে
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # ম্যানুয়ালি গিটহাব ড্যাশবোর্ড থেকে রান করার সুবিধা
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
+    - name: Setup Python Environment
+      uses: actions/python-version@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libfreetype6-dev libjpeg-dev zlib1g-dev
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Execute Main Scraper and Generator Script
+      run: |
+        python main.py
+
+    - name: Commit and Push Updated Data & Images
+      run: |
+        git config --global user.name "DzriTV Bot"
+        git config --global user.email "bot@dzritv-automation.local"
+        
+        git add output/
+        
+        # পরিবর্তন না থাকলে এরর এড়াতে চেক
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update: Scraped live stream data & Willow banners [skip ci]" && git push)
